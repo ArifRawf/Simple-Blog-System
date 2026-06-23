@@ -254,6 +254,7 @@ const scryptAsync = promisify(crypto.scrypt);
        
 		res.writeHead(200, {'Content-Type':'application/json'});
 		res.end(JSON.stringify({logged: true,success: 'Login successful!'}));
+		console.log(refreshTokens);
 		return;
 		}
 	
