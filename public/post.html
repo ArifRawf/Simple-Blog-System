@@ -136,6 +136,13 @@ button:hover {
 
     <div class="meta">Post Title</div>
     <input type="text" id="title" placeholder="Enter post title" required>
+    
+    <div class="meta">
+    <select id='catlists'>
+<option value='' selected disabled> Select A Category </option>
+</select>
+</div>
+
 
     <div class="meta">Post Body</div>
     <textarea id="body" placeholder="Write your post..." required></textarea>
@@ -146,14 +153,45 @@ button:hover {
 </div>
 
 <script>
+let catlists = document.getElementById('catlists');
+
+async function catlist() {
+   try {
+ const req = await fetch('/api/category/lists');
+ const res = await req.json();
+ if(res.error) {
+ const option = document.createElement('option');
+ option.value = '';
+ option.selected = true;
+ option.disabled = true;
+    option.textContent = res.error;
+    catlists.appendChild(option);
+    return;
+    }
+ for(const i of res) {
+   const option = document.createElement('option');
+   option.value = i.catName;
+   option.textContent = i.catName;
+   catlists.appendChild(option);
+   }
+   } catch(err) {
+   alert(err);
+   }
+   return;
+   }
+
 async function post() {
   const titleP = document.getElementById('title').value;
   const postB = document.getElementById('body').value;
+  const date = new Date().toISOString(); //returns UTC timezone ISO 8601 Format
+ 
 
   const data = {
     post: {
       titleP,
-      postB
+      cat: catlists.value,
+      postB, 
+      date
     }
   };
 
@@ -165,9 +203,11 @@ async function post() {
       },
       body: JSON.stringify(data)
     });
+    
 
     const res = await req.json();
-
+    
+    
     if (res.status) {
       alert(res.status);
       return;
@@ -177,11 +217,12 @@ async function post() {
       alert(res.error);
       return;
     }
-
+   
   } catch (err) {
     alert(err);
   }
 }
+catlist();
 </script>
 
 </body>

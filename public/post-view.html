@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loading...</title>
+</head>
+<body>
+
+  <h1 id="title">Loading...</h1>
+
+  <p>
+    <strong>Author:</strong>
+    <span id="author"></span>
+  </p>
+
+  <p>
+    <strong>Date:</strong>
+    <span id="date"></span>
+  </p>
+
+  <hr>
+
+  <div id="body"></div>
+
+  <script>
+    const postid = location.pathname.split('/')[2];
+
+    fetch(`/api/postview/${postid}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Post not found');
+        }
+
+        return response.json();
+      })
+      .then(post => {
+        document.title = post.title;
+        document.getElementById('title').textContent = post.title;
+        document.getElementById('author').textContent = post.author;
+        document.getElementById('date').textContent = post.date;
+        document.getElementById('body').textContent = post.body;
+      })
+      .catch(err => {
+        document.body.innerHTML = `<h2>${err.message}</h2>`;
+      });
+  </script>
+
+</body>
+</html>

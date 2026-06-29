@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Audio Call Fixed</title>
+</head>
+
+<body>
+
+<h2>Audio Call</h2>
+
+<input id="userId">
+<button onclick="login()">Login</button>
+<button onclick="hangup()" id="hangupBtn" style="display:none;background:red;color:white;">Hang Up</button>
+
+<h3>Users</h3>
+<div id="users"></div>
+
+<h3 id="status">Idle</h3>
+
+<audio id="remoteAudio" autoplay></audio>
+<audio id="ringtone" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+<script>
+const ws = new WebSocket("ws://localhost:3000");
+
+let me = null;
+let peer = null;
+let stream = null;
+let target = null;
+
+let pendingOffer = null;
+let inCall = false;
+
+const config = {
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+};
+
+function setStatus(t){
+  document.getElementById("status").innerText = t;
+}
+
+function login(){
+  me = document.getElementById("userId").value;
+
+  ws.send(JSON.stringify({
+    type: "login",
+    userId: me
+  }));
+
+  setStatus("Logged in");
+}
+
+/* 🔥 CLEAN PEER RESET */
+async function resetPeer(){
+
+  if(peer){
+    peer.close();
+    peer = null;
+  }
+
+  stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+
+  peer = new RTCPeerConnection(config);
+  
+  const audioTrack = stream.getTracks()[0];
+  const videoTrack = stream.getTracks()[1];
+  peer.addTrack(audioTrack, stream);
+  peer.addTrack(videoTrack, stream);
+
+  peer.ontrack = (e) => {
+    document.getElementById("remoteAudio").srcObject = e.streams[0];
+    document.getElementById("remoteAudio").play().catch((err)=>{alert(err);});
+  };
+
+  peer.onicecandidate = (e) => {
+    if(e.candidate){
+      ws.send(JSON.stringify({
+        type:"ice",
+        ice:e.candidate,
+        from:me,
+        to:target
+      }));
+    }
+  };
+}
+
+ws.onmessage = async (e) => {
+  const d = JSON.parse(e.data);
+
+  if (d.type === "users") {
+    render(d.users);
+  }
+
+  if (d.type === "incoming_call") {
+    if(inCall) return; // 🔥 block double call
+
+    target = d.from;
+    playRingtone();
+    showAcceptUI();
+    setStatus("Incoming call from " + target);
+  }
+
+  if (d.type === "offer") {
+    target = d.from;
+    pendingOffer = d.offer;
+    showAcceptUI();
+  }
+
+  if (d.type === "answer") {
+    await peer.setRemoteDescription(d.answer);
+    inCall = true;
+    document.getElementById("hangupBtn").style.display = "inline";
+    setStatus("In Call");
+  }
+
+  if (d.type === "ice") {
+    try { await peer.addIceCandidate(d.ice); } catch {}
+  }
+
+  // 🔥 HANGUP RECEIVE
+  if (d.type === "hangup") {
+    endCall(false);
+  }
+};
+
+function render(list){
+  const div = document.getElementById("users");
+  div.innerHTML = "";
+
+  list.forEach(u => {
+    if(u === me) return;
+
+    div.innerHTML += `
+      <div>
+        ${u}
+        <button onclick="callUser('${u}')">CALL</button>
+      </div>
+    `;
+  });
+}
+
+/* CALL */
+async function callUser(to){
+
+  if(inCall) return;
+
+  target = to;
+
+  await resetPeer();
+
+  const offer = await peer.createOffer();
+  await peer.setLocalDescription(offer);
+
+  ws.send(JSON.stringify({
+    type:"call",
+    from:me,
+    to
+  }));
+
+  ws.send(JSON.stringify({
+    type:"offer",
+    offer,
+    from:me,
+    to
+  }));
+
+  setStatus("Calling " + to);
+}
+
+/* ACCEPT FIX */
+async function acceptCall(){
+
+  document.getElementById("acceptBox")?.remove();
+  stopRingtone();
+
+  await resetPeer();
+
+  if(pendingOffer){
+    await peer.setRemoteDescription(pendingOffer);
+
+    const answer = await peer.createAnswer();
+    await peer.setLocalDescription(answer);
+
+    ws.send(JSON.stringify({
+      type:"answer",
+      answer,
+      from:me,
+      to:target
+    }));
+
+    inCall = true;
+    document.getElementById("hangupBtn").style.display = "inline";
+    setStatus("In Call");
+  }
+}
+
+/* 🔥 HANGUP */
+function hangup(){
+
+  if(!inCall) return;
+
+  ws.send(JSON.stringify({
+    type:"hangup",
+    from:me,
+    to:target
+  }));
+
+  endCall(true);
+}
+
+/* CLEAN END */
+function endCall(sendSignal){
+
+  if(peer){
+    peer.close();
+    peer = null;
+  }
+
+  inCall = false;
+  target = null;
+  pendingOffer = null;
+
+  document.getElementById("hangupBtn").style.display = "none";
+  document.getElementById("remoteAudio").srcObject = null;
+
+  stopRingtone();
+  setStatus("Call Ended");
+}
+
+/* UI */
+function showAcceptUI(){
+
+  if(document.getElementById("acceptBox")) return;
+
+  const div = document.createElement("div");
+  div.id = "acceptBox";
+
+  div.innerHTML = `
+    <button onclick="acceptCall()">ACCEPT</button>
+    <button onclick="rejectCall()">REJECT</button>
+  `;
+
+  document.body.appendChild(div);
+}
+
+function rejectCall(){
+  document.getElementById("acceptBox")?.remove();
+  stopRingtone();
+}
+
+/* RINGTONE */
+function playRingtone(){
+  const r = document.getElementById("ringtone");
+  r.loop = true;
+  r.play().catch(()=>{});
+}
+
+function stopRingtone(){
+  const r = document.getElementById("ringtone");
+  r.pause();
+  r.currentTime = 0;
+}
+</script>
+
+</body>
+</html>

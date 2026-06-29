@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Category</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #f5f5f5;
+}
+
+form {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 320px;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 12px 0;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    cursor: pointer;
+}
+
+#message {
+    margin-top: 12px;
+}
+@media (max-width: 800px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+</head>
+<body>
+
+<form id="categoryForm">
+    <h2>Create Category</h2>
+
+    <input
+        type="text"
+        id="category"
+        placeholder="Category name"
+        required
+    >
+
+    <button>Create</button>
+
+    <div id="message"></div>
+</form>
+
+<script>
+const form = document.getElementById("categoryForm");
+const categoryInput = document.getElementById("category");
+const message = document.getElementById("message");
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const cat_name = categoryInput.value.trim();
+    const cat_id = Date.now();
+
+    if (!category) {
+        message.textContent = "Category is required.";
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/category/create", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ cat_name, cat_id })
+        });
+
+        const data = await response.json();
+      if(data.status) {
+       return message.textContent = data.status;
+        }
+        if(data.error) {
+        return message.textContent = data.error;
+        }
+        if (response.ok) {
+            form.reset();
+        }
+
+    } catch (err) {
+        message.textContent = err;
+        console.error(err);
+    }
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login & Register</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial,sans-serif;
+    background:#f4f4f4;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.container{
+    background:#fff;
+    padding:20px;
+    width:350px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,.2);
+}
+
+h2{
+    margin-bottom:15px;
+    text-align:center;
+}
+
+form{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+input{
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:5px;
+}
+
+button{
+    padding:10px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+hr{
+    margin:20px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Register</h2>
+
+    
+        <input
+            type="text"
+            id="registerUsername"
+            placeholder="Username"
+            required
+        >
+
+        <input
+            type="password"
+            id="registerPassword"
+            placeholder="Password"
+            required
+        >
+
+        <button onclick="register()">Register</button>
+    
+
+    <hr>
+
+    <h2>Login</h2>
+
+  
+        <input
+            type="text"
+            id="loginUsername"
+            placeholder="Username"
+            required
+        >
+
+        <input
+            type="password"
+            id="loginPassword"
+            placeholder="Password"
+            required
+        >
+
+        <button type="submit" onclick="login()">Login</button>
+    
+
+</div>
+
+<script>
+//sendibg login request
+async function login() {
+ const username = document.getElementById('loginUsername').value;
+ const password = document.getElementById('loginPassword').value;
+   const loginReq = await fetch('/login', {method: 'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({username,password})});
+  const loginRes = await loginReq.json();
+ 
+ if(loginRes.error) {
+  alert(loginRes.error);
+  return;
+  }
+  if(loginRes.success) {
+  alert(loginRes.success);
+  return;
+  }
+   
+   }
+
+//sending register data
+async function register() {
+ const username = document.getElementById('registerUsername').value;
+ const password = document.getElementById('registerPassword').value;
+const timestamp = Date.now();
+const date = new Date(timestamp);
+const localtime = date.toLocaleString();
+   const registerReq = await fetch('/register', {method: 'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({userid:Date.now(),role: 'member',username,password,pdate: localtime})});
+  const registerRes = await registerReq.json();
+ 
+ if(registerRes.error) {
+  alert(registerRes.error);
+  return;
+  }
+  if(registerRes.success) {
+  alert(registerRes.success);
+  return;
+  }
+   
+   }
+
+</script>
+
+</body>
+</html>

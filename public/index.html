@@ -75,6 +75,11 @@
       color: #666;
       margin-bottom: 10px;
     }
+    .excerpts {
+      font-size: 14px;
+      color: grey;
+      margin-bottom: 3px;
+    }
 
     /* Sidebar */
     .sidebar .tag {
@@ -117,6 +122,7 @@
     <div class="logo">MyBlog</div>
     <nav>
       <a href="/index.html">Home</a>
+      <a href="/post.html">Post</a><br>
       <a href="/login.html">Login</a>
       <a href="/register.html">Register</a>
     </nav>
@@ -128,38 +134,15 @@
     <!-- Latest Posts -->
     <div class="main">
       <div class="section-title">Latest Posts</div>
-
-      <div class="card">
-        <h3>Why Node.js is still powerful in 2026</h3>
-        <div class="meta">by Arman • 2 hours ago</div>
-        <p>Node.js continues to dominate backend development due to its event-driven architecture and simplicity...</p>
-      </div>
-
-      <div class="card">
-        <h3>Understanding Streams in Node.js</h3>
-        <div class="meta">by Developer • 5 hours ago</div>
-        <p>Streams help handle large data efficiently without loading everything into memory...</p>
-      </div>
-
-      <div class="card">
-        <h3>File System vs Database explained simply</h3>
-        <div class="meta">by Admin • 1 day ago</div>
-        <p>Choosing between file system storage and databases depends on scale, speed, and structure...</p>
-      </div>
+      <div id='latestPosts'></div>
     </div>
 
     <!-- Sidebar -->
     <div class="sidebar">
 
-      <div class="section-title">Categories</div>
+      <div class="section-title">Categories | <a href='/category/create'>Add</a></div>
 
-      <div class="card">
-        <span class="tag">Node.js</span>
-        <span class="tag">JavaScript</span>
-        <span class="tag">Backend</span>
-        <span class="tag">Database</span>
-        <span class="tag">APIs</span>
-        <span class="tag">Auth</span>
+      <div class="card" id='catlists'>
       </div>
 
       <div class="section-title">Trending</div>
@@ -178,6 +161,109 @@
   <footer>
     © 2026 MyBlog. All rights reserved.
   </footer>
+
+<script>
+//time ago formatting
+function timeAgo(isoDate) {
+  const now = new Date();
+  const past = new Date(isoDate);
+
+  const diff = Math.floor((now - past) / 1000); // seconds
+
+  if (diff < 60) {
+    return `${diff} seconds ago`;
+  }
+  const minutes = Math.floor(diff / 60);
+  if (minutes < 60) {
+    return `${minutes} minutes ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours} hours ago`;
+  }
+  const days = Math.floor(hours / 24);
+  if(days === 1) {
+  return `${days} day ago`;
+  }
+  if (days < 30) {
+    return `${days} days ago`;
+  }
+
+  const months = Math.floor(days / 30);
+  if (months < 12) {
+    return `${months} months ago`;
+  }
+
+  const years = Math.floor(months / 12);
+  return `${years} years ago`;
+}
+
+//category listing
+async function catlists() {
+   try {
+ const req = await fetch('/api/category/lists');
+ const res = await req.json();
+ const catlists = document.getElementById('catlists');
+ if(res.error) {
+    return catlists.textContent = res.error;
+    }
+ for(const i of res) {
+   const span = document.createElement('span');
+   span.classList.add('tag');
+   span.textContent = i.catName;
+   catlists.appendChild(span);
+   }
+   } catch(err) {
+   alert(err);
+   }
+   }
+
+//fetching Latest Posts with vanilla javascript
+async function latestPosts(){
+try{
+const req = await fetch('/api/latestPosts');
+const res = await req.json();
+const div_main = document.getElementById('latestPosts');
+//get all posts from res
+
+//if errorobj exist
+if(res.error) {
+const div_card = document.createElement('div');
+  const h3 = document.createElement('h3');
+  div_card.classList.add('card');
+  h3.textContent = res.error;
+  div_card.appendChild(h3);
+  div_main.appendChild(div_card);
+  return;
+  }
+  
+for(const post of res) {
+  const div_card = document.createElement('div');
+  const div_meta = document.createElement('div');
+  const p = document.createElement('p');
+  const h3 = document.createElement('h3');
+  const a = document.createElement('a');
+  div_meta.classList.add('meta');
+  div_card.classList.add('card');
+  a.href = `/post/${post.id}`;
+  a.textContent = 'read more';
+  p.classList.add('excerpts');
+  p.textContent = post.excerpts;
+  h3.textContent = post.title;
+  div_meta.textContent = `By ${post.author},In ${post.cat}, Created: ${timeAgo(post.date)}`;
+  p.appendChild(a);
+  div_card.append(h3, p, div_meta);
+  div_main.appendChild(div_card);
+  }
+  }catch(err) {
+  alert(err);
+  }
+}
+latestPosts();
+catlists();
+</script>
+
 
 </body>
 </html>
