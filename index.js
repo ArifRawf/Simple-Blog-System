@@ -1,6 +1,7 @@
 const http = require('http');
 const profileRoute = require('./core/routes/profile'); //profile route
 const postRoute = require('./core/routes/post'); //post route
+const latestPostsRoute = require('./core/routes/latestPosts');
 const { accessSec,refreshSec } = require('./core/modules/secretKey'); //secret key for jwt
 const fs = require('fs').promises; 
 const path = require('path');
@@ -11,11 +12,58 @@ const usersList = require('./core/modules/getUsers'); //an array of users id.jso
 const jwt = require('jsonwebtoken'); //to authorize users
 const storedIps = new Map(); //to store ip and time of login user
 const blockedIps = new Map(); //to block ip of login user
-
 //creating server with pure built in http module
+let postidstore;
+
 const server = http.createServer(async function (req,res) {
 //parsing url to get params
 const urlData = new URL(req.url,`http://${req.headers.host}`);
+const indexPosts = JSON.parse(await fs.readFile(path.join(__dirname,'main','posts','postIndex.json'),'utf8'));
+let post_view_html = await fs.readFile(path.join(__dirname,'public','post-view.html'),'utf8');
+ const postviewCheck = urlData.pathname.split('/');
+ let postid;
+ let postid_regex;
+ let postid_api;
+ let postid_regex_api;
+ 
+ //postviewCheck for html render
+ if(postviewCheck.length === 3 && postviewCheck[1] === 'post') {
+  postid = postviewCheck[2];
+  postid_regex = /^\d+$/.test(postid);
+ } 
+
+ //postviewcheck for api
+ if(postviewCheck.length === 4 && postviewCheck[1] === 'api' && postviewCheck[2] === 'postview') {
+ 	postid_api = postviewCheck[3];
+     postid_regex_api = /^\d+$/.test(postid_api);
+     console.log(postid_api);
+     }
+//html render
+ if(urlData.pathname === `/post/${postid}` || urlData.pathname === `/post` || urlData.pathname === `/post/`) {
+ 	if(!postid_regex) {
+ 	res.writeHead(404,{'Content-Type':'application/json'});
+ 	return res.end(JSON.stringify({error: 'please enter a valid post url'})); 
+         }
+         res.writeHead(200,{'Content-Type':'text/html'});
+ return res.end(post_view_html);
+ }
+ 
+ //postview api
+ if(urlData.pathname === `/api/postview/${postid_api}`) {
+ 	try {
+ 	const postbodyapi = JSON.parse(await fs.readFile(path.join(process.cwd(),'main','posts',`${postid_api}.json`),'utf8'));
+ res.writeHead(200,{'Content-Type':'application/json'});
+ return res.end(JSON.stringify(postbodyapi));
+}catch(err) {
+ 	if(err.code === 'ENOENT') {
+ 	res.writeHead(404,{'Content-Type':'application/json'});
+ 	return res.end(JSON.stringify({error: 'Invalid post url or post deleted!'}));
+ }
+ }
+ }
+ 
+ 
+ 
 
 //<--All Served Pages-->
 //index page
@@ -35,7 +83,9 @@ await profileRoute(req,res,refreshTokens,urlData);
  } catch(err) { return res.end(err.message); }
 	return;
 	}
-
+	
+	
+			
 //post page
 else if(urlData.pathname === '/post.html') {
 	data = await fs.readFile(path.join(__dirname,'public','post.html'),'utf8');
@@ -53,7 +103,7 @@ else if(urlData.pathname === '/post.html') {
 	}
 
 //registration page
-else if(urlData.pathname === '/register.html') {
+if (urlData.pathname === '/register.html') {
 	const data = await fs.readFile(path.join(__dirname,'public','register.html'),'utf8');
 		res.writeHead(200,{'Content-Type':'text/html'});
 		res.end(data);
@@ -68,14 +118,89 @@ else if(urlData.pathname === '/style.css') {
 	return;
 	}
 	
+//--->category Implementation
+//category creating route
+if(urlData.pathname === '/category/create') {
+	const data = await fs.readFile(path.join(process.cwd(),'public','create-category.html'),'utf8');
+		res.writeHead(200,{'Content-Type':'text/html'});
+		res.end(data);
+	return;
+	}
+	//api for creating category, each category has id,json file
+if(urlData.pathname === '/api/category/create' && req.method === 'POST') {
+	let body = '';
+	req.on('data', (c) => { 
+		body += c.toString();
+		});
+	req.on('end',async () => {
+		let cat;
+	try {
+	 cat = JSON.parse(body);
+	} catch(err) {
+		if(err) {
+			console.log(err);
+			return res.end(err.message);
+			}
+			}
+	if(!cat.cat_name) {
+		res.writeHead(400,{'Content-Type':'application/json'});
+	return res.end(JSON.stringify({status: 'Category name shouldnt empty!'}));
+	}
+	const cat_name = cat.cat_name;
+	const cat_id = cat.cat_id;
+	try {
+	await fs.writeFile(path.join(process.cwd(),'main','categories',`${cat_id}.json`), 
+	JSON.stringify({catId: cat_id, catName: cat_name})
+	);
+	res.writeHead(200,{'Content-Type':'application/json'});
+	return res.end(JSON.stringify({status: 'category Created Successfully'}));
+	} catch(err) {
+		if(err) {
+			res.writeHead(500,{'Content-Type':'application/json'});
+	return res.end(JSON.stringify({error: err.message}));
+			}
+			}
+		});
+		return;
+	}
+//api for listing category
+if(urlData.pathname === '/api/category/lists') { 
+	try {
+   const cats = await fs.readdir(path.join(process.cwd(),'main','categories'));
+   let catLists = [];
+    for(const file of cats) {
+    const cat = JSON.parse(await fs.readFile(path.join(process.cwd(),'main','categories',file),'utf8'));
+    catLists.push(cat);
+    console.log(cat + ' pushed');
+    }
+    if(catLists.length === 0) {
+    	res.writeHead(200,{'Content-Type':'application/json'});
+	return res.end(JSON.stringify({error: 'category list is empty!'}));
+	}
+    res.writeHead(200,{'Content-Type':'application/json'});
+	return res.end(JSON.stringify(catLists));
+   } catch(err) {
+   	console.log(err);
+  return res.end(err);
+   }
+   return;
+   }
+
+
+
 //<--All Api Routes->>
+
+//latest post api
+else if(urlData.pathname === '/api/latestPosts') {
+await latestPostsRoute(req,res);
+	return;
+	}
 
 //post Route
  else if(req.url === '/api/post' && req.method === 'POST') {
  	 postRoute(req,res,refreshTokens);
  return;
 	}
-	
  	
   //register route
 else if(req.url === '/register' && req.method === 'POST') {
@@ -272,7 +397,7 @@ const scryptAsync = promisify(crypto.scrypt);
 
 	
 //if request come from unknown route
- else  { res.end('page not found'); }
+ else  { res.end('404 requested page not found'); }
 		}); //server brace closed
 		
 		
