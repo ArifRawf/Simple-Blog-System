@@ -391,34 +391,12 @@ const scryptAsync = promisify(crypto.scrypt);
 		
 		
 		//2nd server for testing
-		const testServer = http.createServer(async function (req,res) {
-const urlObj = new URL(req.url,`http://${req.headers.host}`);
-if(urlObj.pathname === '/alluser') {
-	res.writeHead(200, {
-  'Content-Type': 'application/json'
-});
-	res.end(JSON.stringify(await usersList));
-	return;
-	}
-else if(urlObj.pathname === '/') {
-	const cookie = req.headers.cookie || '';
-const cookies = 
-  cookie.split(';').map(c => {
-    const [key, value] = c.trim().split('=');
-    return [key, value];
-  });
-console.log(Object.fromEntries(cookies));
-} else {
-	res.end('page not found');
-	}
-	});
-	
-	//plugged the test server after main server
-	testServer.listen(4000,()=>{console.log('server running on port 4000')});	
 
+	//plugged the test server after main server
+	
 
 //main server		
-		server.listen(3000, () => {
+		server.listen(process.env.PORT || 3000, () => {
      return console.log('server listening on port 3000');
      }
 );
