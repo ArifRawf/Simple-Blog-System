@@ -1,89 +1,152 @@
 const http = require('http');
-const profileRoute = require('./core/routes/profile'); //profile route
-const postRoute = require('./core/routes/post'); //post route
-const latestPostsRoute = require('./core/routes/latestPosts');
+const indexPosts = require('./core/modules/postsIndex');
+const view_profile = require('./core/modules/view-profile');
+const video = require('./core/modules/video');
+const categoryView = require('./core/modules/category');
+const auth = require('./core/modules/authCheck');
+const logout = require('./core/modules/logout');
+const category_lists = require('./core/modules/category-lists');
+const postRoute = require('./core/modules/post'); //post route
+const latestPostsRoute = require('./core/modules/latestPosts');
 const { accessSec,refreshSec } = require('./core/modules/secretKey'); //secret key for jwt
 const fs = require('fs').promises; 
 const path = require('path');
 const crypto = require('crypto');
 const { promisify } = require('util'); //for crypto.scrypt
-let refreshTokens = {};
-const usersList = require('./core/modules/getUsers'); //an array of users id.json
+let refreshTokens = new Map(); //All refresh Tokens are stored
+const userProfiles = require('./core/modules/getUsers'); //returns users profile in array
 const jwt = require('jsonwebtoken'); //to authorize users
 const storedIps = new Map(); //to store ip and time of login user
 const blockedIps = new Map(); //to block ip of login user
 //creating server with pure built in http module
-let postidstore;
 
 const server = http.createServer(async function (req,res) {
 //parsing url to get params
 const urlData = new URL(req.url,`http://${req.headers.host}`);
-const indexPosts = JSON.parse(await fs.readFile(path.join(__dirname,'main','posts','postIndex.json'),'utf8'));
-let post_view_html = await fs.readFile(path.join(__dirname,'public','post-view.html'),'utf8');
- const postviewCheck = urlData.pathname.split('/');
- let postid;
- let postid_regex;
- let postid_api;
- let postid_regex_api;
- 
- //postviewCheck for html render
- if(postviewCheck.length === 3 && postviewCheck[1] === 'post') {
-  postid = postviewCheck[2];
-  postid_regex = /^\d+$/.test(postid);
- } 
-
- //postviewcheck for api
- if(postviewCheck.length === 4 && postviewCheck[1] === 'api' && postviewCheck[2] === 'postview') {
- 	postid_api = postviewCheck[3];
-     postid_regex_api = /^\d+$/.test(postid_api);
-     console.log(postid_api);
-     }
-//html render
- if(urlData.pathname === `/post/${postid}` || urlData.pathname === `/post` || urlData.pathname === `/post/`) {
- 	if(!postid_regex) {
- 	res.writeHead(404,{'Content-Type':'application/json'});
- 	return res.end(JSON.stringify({error: 'please enter a valid post url'})); 
-         }
+const segment = urlData.pathname.split('/'); //url segments in array
+//category lists
+if (await category_lists(req,res)) return;
+//logout users
+if(logout(req,res)) return;
+//category
+if(await categoryView(req,res,segment,urlData,refreshTokens)) return;
+//view profile
+if(await view_profile(req,res,segment,refreshTokens)) return;
+//latestPosts Api
+if(await latestPostsRoute(req,res,segment,urlData)) return;
+//video section
+if(video(req,res,segment,refreshTokens)) return;
+//html render to  post
+ if(segment.length === 3 && segment[1] === 'post') {
+ 	try{
+ 	const data = await fs.readFile(path.join(__dirname,'public','post-view.html'),'utf8');
          res.writeHead(200,{'Content-Type':'text/html'});
- return res.end(post_view_html);
- }
- 
- //postview api
- if(urlData.pathname === `/api/postview/${postid_api}`) {
- 	try {
- 	const postbodyapi = JSON.parse(await fs.readFile(path.join(process.cwd(),'main','posts',`${postid_api}.json`),'utf8'));
- res.writeHead(200,{'Content-Type':'application/json'});
- return res.end(JSON.stringify(postbodyapi));
-}catch(err) {
- 	if(err.code === 'ENOENT') {
- 	res.writeHead(404,{'Content-Type':'application/json'});
- 	return res.end(JSON.stringify({error: 'Invalid post url or post deleted!'}));
+ return res.end(data);
+ } catch(e) {
+ 	return res.end(e);
  }
  }
+ //api route '/api/postview/:id' for view post
+ if(segment.length === 4 && segment[1] === 'api' && segment[2] === 'postview') { 	
+	const check_id = /^\d+$/.test(segment[3]);
+	
+  let postid = (check_id) ? Number(segment[3]) : null;
+  const posts = await indexPosts();
+  const exist = posts.some(p => p.id === postid);
+	if(!postid) {
+ 	res.writeHead(400,{'Content-Type':'application/json'});
+ 	return res.end(JSON.stringify({error: 'Invalid Post ID!'})); 
+         }
+    if(postid && !exist) {
+    	res.writeHead(404,{'Content-Type':'application/json'});
+ 	return res.end(JSON.stringify({error: 'No post found with the ID!'})); 
  }
- 
- 
- 
+    if(postid && exist) {
+    	try { 
+    	const postBody = JSON.parse(await fs.readFile(path.join(__dirname,'main','posts',`${postid}.json`),'utf8')); //returns the post data via id
+    const profile = JSON.parse(await fs.readFile(path.join(process.cwd(),'users',`${postBody.authorId}.json`), 'utf8'));
+    postBody.profilePic = profile.profilePic;
+    postBody.role = profile.role;
+    res.writeHead(200,{'Content-Type':'application/json'});
+ 	return res.end(JSON.stringify(postBody)); 
+         
+         } catch(err) {
+         	res.writeHead(500,{'Content-Type':'application/json'});
+ 	return res.end(JSON.stringify({error: err.message})); 
+ }
+ }
 
-//<--All Served Pages-->
+         }
+         
+      if (req.method === "GET" &&
+    req.url.startsWith("/pictures/profile/")) {
+
+    const filename = path.basename(req.url);
+console.log(filename);
+    const file = await fs.readFile(path.join(
+        process.cwd(),
+        "pictures",
+        "profile",
+        filename
+    ));
+
+    res.writeHead(200,{'Content-Type':'image/jpg'});
+		res.end(file);
+	return;
+}
+      	
+ 
 //index page
 if(urlData.pathname === '/' || urlData.pathname === '/index.html') {
-	try{
-   const data = await fs.readFile(path.join(__dirname,'public','index.html'),'utf8');
+	try {
+		const logged = auth(req,res,refreshTokens); //returns payload or false
+		let pl_userid = null;
+		let userProfile = null;
+	if(logged) {
+	 pl_userid = logged.userid;
+	 userProfile = JSON.parse(await fs.readFile(path.join(process.cwd(),'users', `${pl_userid}.json`),'utf8'));
+		}
+let html = await fs.readFile(path.join(__dirname,'public','index.html'),'utf8');
+	const loggedMenu = `<a href="/index.html">Home</a><br><a href="/profile">Profile</a><br><a href="/post.html">New Post</a><br><a href="/logout">Logout</a><br>`;
+	const guestMenu = `<a href="/login.html">Login</a><br><a href="/register.html">Register</a>`;
+	
+  html = (userProfile) ? html.replace('{{HEAD_SECTION_CHECK}}',loggedMenu).replace('{{user}}',userProfile.username) : html.replace('{{HEAD_SECTION_CHECK}}',guestMenu).replace('{{user}}','Guest!');
+		res.writeHead(200,{'Content-Type':'text/html'});
+		return res.end(html);
+		
+	} catch(err) {
+console.log(err);
+ return res.end(err.message); }
+ return;
+	}
+	
+else if(urlData.pathname === '/profile-pic.html') {
+	const logged = auth(req,res,refreshTokens);
+	if(!logged) {
+		res.writeHead(302,{'Location':'/login.html'});
+		res.end();
+		return;
+		}
+	data = await fs.readFile(path.join(__dirname,'public','upload-profile-pic.html'),'utf8');
 		res.writeHead(200,{'Content-Type':'text/html'});
 		res.end(data);
-	} catch(err) { return res.end(err.message); }
-	return;
-	}
-
-//profile page with api
-else if(urlData.pathname === '/profile.html') {
-try {
-await profileRoute(req,res,refreshTokens,urlData);
- } catch(err) { return res.end(err.message); }
 	return;
 	}
 	
+	if(urlData.pathname === '/upload-video.html') {
+	const logged = auth(req,res,refreshTokens);
+	if(!logged) {
+		res.writeHead(302,{'Location':'/login.html'});
+		res.end();
+		return;
+		}
+	data = await fs.readFile(path.join(__dirname,'public','video-uploader.html'),'utf8');
+		res.writeHead(200,{'Content-Type':'text/html'});
+		res.end(data);
+	return;
+	}
+
+
 	
 			
 //post page
@@ -118,86 +181,10 @@ else if(urlData.pathname === '/style.css') {
 	return;
 	}
 	
-//--->category Implementation
-//category creating route
-if(urlData.pathname === '/category/create') {
-	const data = await fs.readFile(path.join(process.cwd(),'public','create-category.html'),'utf8');
-		res.writeHead(200,{'Content-Type':'text/html'});
-		res.end(data);
-	return;
-	}
-	//api for creating category, each category has id,json file
-if(urlData.pathname === '/api/category/create' && req.method === 'POST') {
-	let body = '';
-	req.on('data', (c) => { 
-		body += c.toString();
-		});
-	req.on('end',async () => {
-		let cat;
-	try {
-	 cat = JSON.parse(body);
-	} catch(err) {
-		if(err) {
-			console.log(err);
-			return res.end(err.message);
-			}
-			}
-	if(!cat.cat_name) {
-		res.writeHead(400,{'Content-Type':'application/json'});
-	return res.end(JSON.stringify({status: 'Category name shouldnt empty!'}));
-	}
-	const cat_name = cat.cat_name;
-	const cat_id = cat.cat_id;
-	try {
-	await fs.writeFile(path.join(process.cwd(),'main','categories',`${cat_id}.json`), 
-	JSON.stringify({catId: cat_id, catName: cat_name})
-	);
-	res.writeHead(200,{'Content-Type':'application/json'});
-	return res.end(JSON.stringify({status: 'category Created Successfully'}));
-	} catch(err) {
-		if(err) {
-			res.writeHead(500,{'Content-Type':'application/json'});
-	return res.end(JSON.stringify({error: err.message}));
-			}
-			}
-		});
-		return;
-	}
-//api for listing category
-if(urlData.pathname === '/api/category/lists') { 
-	try {
-   const cats = await fs.readdir(path.join(process.cwd(),'main','categories'));
-   let catLists = [];
-    for(const file of cats) {
-    const cat = JSON.parse(await fs.readFile(path.join(process.cwd(),'main','categories',file),'utf8'));
-    catLists.push(cat);
-    console.log(cat + ' pushed');
-    }
-    if(catLists.length === 0) {
-    	res.writeHead(200,{'Content-Type':'application/json'});
-	return res.end(JSON.stringify({error: 'category list is empty!'}));
-	}
-    res.writeHead(200,{'Content-Type':'application/json'});
-	return res.end(JSON.stringify(catLists));
-   } catch(err) {
-   	console.log(err);
-  return res.end(err);
-   }
-   return;
-   }
 
 
-
-//<--All Api Routes->>
-
-//latest post api
-else if(urlData.pathname === '/api/latestPosts') {
-await latestPostsRoute(req,res);
-	return;
-	}
-
-//post Route
- else if(req.url === '/api/post' && req.method === 'POST') {
+//create post Route
+ else if(urlData.pathname === '/api/post' && req.method === 'POST') {
  	 postRoute(req,res,refreshTokens);
  return;
 	}
@@ -245,7 +232,7 @@ else if(req.url === '/register' && req.method === 'POST') {
    for(const file of files) {
    const f = await fs.readFile(path.join(__dirname,'users',file),'utf8');
    const pdata = JSON.parse(f);
-   if(pdata.username === username) {
+   if(pdata.username.toLowerCase() === username.toLowerCase()) {
    	res.writeHead(400, { 'Content-Type': 'application/json' });
    return res.end(JSON.stringify({error: 'Username already has taken!' }));
    }
@@ -253,12 +240,12 @@ else if(req.url === '/register' && req.method === 'POST') {
    //storing username password to file system database json, each user id is id.json and inside username and crypto password 
 await fs.writeFile(
       userfile, 
-      JSON.stringify({userid: id, username: username,role: role, pdate: pdate, salt: passSalt, hash: passHash}));
+      JSON.stringify({userid: id,username: username,role: role, pdate: pdate, salt: passSalt, hash: passHash}));
 res.writeHead(200, {'Content-Type':'application/json'});
 		return res.end(JSON.stringify({success: 'Registration success, please login!'}));
 			} catch(err) {
   res.writeHead(500, {'Content-Type':'application/json'});
-  return res.end(JSON.stringify({ error: err.message }));
+  return res.end(JSON.stringify({error: err.message }));
 }
 	});
 	return;
@@ -360,25 +347,25 @@ const scryptAsync = promisify(crypto.scrypt);
 	const bufhash = Buffer.from(puData.hash,'hex');
 	const check = crypto.timingSafeEqual(bufhash,dKey);
 	if(username === puData.username && check) {
-		const payload = {username: puData.username, userid: puData.userid,role: puData.role, pdate: puData.pdate};
+		const payload = {userid: puData.userid,role: puData.role};
 		//creating a token for this user
 		const accessToken = jwt.sign(
    payload,
    accessSec,
-   {expiresIn: '30s'}
+   {expiresIn: '1m'}
   );
   const refreshToken = jwt.sign(
    payload,
    refreshSec,
-   {expiresIn: '10m'}
+   {expiresIn: '30m'}
   );
   
  //attaching the token to the user browser header
        res.setHeader('Set-Cookie',[`accessToken=${accessToken}; HttpOnly; Path=/; SameSite=Strict`,`refreshToken=${refreshToken}; HttpOnly; Path=/; SameSite=Strict`]);
-       refreshTokens = {refreshToken};
-       
+       refreshTokens.set(refreshToken,refreshToken);
 		res.writeHead(200, {'Content-Type':'application/json'});
-		res.end(JSON.stringify({logged: true,success: 'Login successful!'}));
+		
+		res.end(JSON.stringify({success: 'Login successful!'}));
 		console.log(refreshTokens);
 		return;
 		}
