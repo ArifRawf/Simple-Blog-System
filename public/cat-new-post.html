@@ -186,7 +186,6 @@ header{
     
     <div class="meta">
     <select id='catlists'>
-<option value='' selected disabled> Select A Category </option>
 </select>
 </div>
 
@@ -201,6 +200,7 @@ header{
 
 <script>
 let catlists = document.getElementById('catlists');
+let path = window.location.pathname.split('/'); //array paths
 
 async function catlist() {
    try {
@@ -216,6 +216,9 @@ async function catlist() {
     return;
     }
  for(const i of res) {
+ if(i.catName !== path[2]) {
+ continue;
+ }
    const option = document.createElement('option');
    option.value = i.catId;
    option.textContent = i.catName;

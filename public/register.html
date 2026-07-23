@@ -1,253 +1,239 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Your Account</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-        body {
-            display: flex;
-            height: 100vh;
-            background: #0f172a;
-            color: #f8fafc;
-            overflow: hidden;
-        }
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
 
-        /* Split Screen Container */
-        .container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-        }
+body{
+    font-family:Inter,sans-serif;
+    background:#eef2f7;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+    color:#1f2937;
+}
 
-        /* Left Side: Aesthetic Visual Panel */
-        .visual-panel {
-            flex: 1;
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 60px;
-            position: relative;
-        }
+/* Register Card */
 
-        .visual-panel::before {
-            content: '';
-            position: absolute;
-            width: 300px;
-            height: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            top: -50px;
-            left: -50px;
-            filter: blur(40px);
-        }
+.container{
+    width:100%;
+    max-width:430px;
+    background:#fff;
+    border:1px solid #dbe2ea;
+    border-radius:18px;
+    padding:35px;
+    box-shadow:0 12px 35px rgba(0,0,0,.08);
+}
 
-        .visual-title {
-            font-size: 3rem;
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 20px;
-            background: linear-gradient(to right, #ffffff, #e2e8f0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+/* Heading */
 
-        .visual-text {
-            font-size: 1.1rem;
-            color: #e2e8f0;
-            max-width: 450px;
-            line-height: 1.6;
-        }
+.container h2{
+    text-align:center;
+    font-size:32px;
+    color:#2563eb;
+    margin-bottom:30px;
+}
 
-        /* Right Side: Form Panel */
-        .form-panel {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #0f172a;
-            padding: 40px;
-        }
+/* Form */
 
-        .form-card {
-            width: 100%;
-            max-width: 420px;
-        }
+form{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
 
-        .form-header {
-            margin-bottom: 32px;
-        }
+input{
+    width:100%;
+    padding:14px 16px;
+    font-size:16px;
+    font-family:inherit;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+    outline:none;
+    transition:.2s;
+}
 
-        .form-header h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
+input:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
 
-        .form-header p {
-            color: #94a3b8;
-            font-size: 0.95rem;
-        }
+/* Button */
 
-        .form-header a {
-            color: #818cf8;
-            text-decoration: none;
-            font-weight: 600;
-        }
+button{
+    margin-top:8px;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:#2563eb;
+    color:#fff;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    transition:.25s;
+}
 
-        .form-header a:hover {
-            text-decoration: underline;
-        }
+button:hover{
+    background:#1d4ed8;
+}
 
-        /* Form Controls */
-        .input-group {
-            margin-bottom: 20px;
-        }
+/* Message */
 
-        .input-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+#msg{
+    margin-top:20px;
+    min-height:24px;
+    text-align:center;
+    font-weight:600;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+}
 
-        .input-wrapper {
-            position: relative;
-        }
+.success{
+    color:#16a34a;
+}
 
-        .input-wrapper input {
-            width: 100%;
-            padding: 14px 16px;
-            background: #1e293b;
-            border: 2px solid #334155;
-            border-radius: 12px;
-            color: #fff;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
+.error{
+    color:#dc2626;
+}
 
-        .input-wrapper input:focus {
-            outline: none;
-            border-color: #6366f1;
-            background: #0f172a;
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
-        }
+/* Footer Text */
 
-        /* Terms Checkbox */
-        .terms-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 28px;
-            font-size: 0.9rem;
-            color: #94a3b8;
-        }
+.container p{
+    margin-top:25px;
+    text-align:center;
+    color:#6b7280;
+    font-size:15px;
+}
 
-        .terms-container input {
-            width: 18px;
-            height: 18px;
-            accent-color: #6366f1;
-            cursor: pointer;
-        }
+.container a{
+    color:#2563eb;
+    text-decoration:none;
+    font-weight:600;
+}
 
-        /* Submit Button */
-        .btn-submit {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
+.container a:hover{
+    text-decoration:underline;
+}
 
-        .btn-submit:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
-        }
+/* Mobile */
 
-        .btn-submit:active {
-            transform: translateY(1px);
-        }
+@media(max-width:500px){
 
-        /* Responsive Design */
-        @media (max-width: 900px) {
-            .visual-panel {
-                display: none;
-            }
-        }
-    </style>
+.container{
+    padding:25px;
+}
+
+.container h2{
+    font-size:28px;
+}
+
+}
+</style>
+
 </head>
+
 <body>
 
-    <div class="container">
-        <!-- Visual Sidebar -->
-        <div class="visual-panel">
-            <h1 class="visual-title">Discover the next level of creativity.</h1>
-            <p class="visual-text">Join thousands of creators managing their workflows, assets, and collaborations flawlessly in one beautiful dashboard.</p>
-        </div>
+<div class="container">
 
-        <!-- Registration Form Panel -->
-        <div class="form-panel">
-            <div class="form-card">
-                <div class="form-header">
-                    <h2>Get started</h2>
-                    <p>Already have an account? <a href="/login.html">Sign in</a> | <a href="/">Home</a></p>
-                </div>
+<h2>Create Account</h2>
 
-                <form autocomplete="off">
-                    <div class="input-group">
-                        <label for="name">Username</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="name" placeholder="Arman,Arman123,arman123,ARMAN123" required>
-                        </div>
-                    </div>
+<form id="registerForm">
 
-                    <div class="input-group">
-                        <label for="email">Email Address</label>
-                        <div class="input-wrapper">
-                            <input type="email" id="email" placeholder="you@example.com" required>
-                        </div>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label for="bio">Bio</label>
-                        <div class="input-wrapper">
-                            <input type="email" id="email" placeholder="whats on your mind?" required>
-                        </div>
-                    </div>
+<input
+type="text"
+id="username"
+placeholder="Username"
+required>
 
-                    <div class="input-group">
-                        <label for="password">Password</label>
-                        <div class="input-wrapper">
-                            <input type="password" id="password" placeholder="••••••••" required>
-                        </div>
-                    </div>
+<input
+type="password"
+id="password"
+placeholder="Password"
+required>
 
-                    <div class="terms-container">
-                        <input type="checkbox" id="terms" required>
-                        <label for="terms">I agree to the Terms of Service and Privacy Policy</label>
-                    </div>
+<button>Create Account</button>
 
-                    <button type="submit" class="btn-submit">Create Account</button>
-                </form>
-            </div>
-        </div>
-    </div>
+</form>
+
+<div id="msg"></div>
+
+<p>
+Already have an account?
+<a href="/login.html">Login</a>
+</p>
+
+</div>
+
+<script>
+
+const form=document.getElementById("registerForm");
+const msg=document.getElementById("msg");
+
+form.addEventListener("submit",async(e)=>{
+
+e.preventDefault();
+
+msg.textContent="";
+msg.className="";
+
+const data={
+    userid:Date.now(),
+    username:document.getElementById("username").value.trim(),
+    password:document.getElementById("password").value,
+    role:"user",
+    pdate:new Date().toISOString()
+};
+
+try{
+
+const res=await fetch("/register",{
+    method:"POST",
+    headers:{
+        "Content-Type":"application/json"
+    },
+    body:JSON.stringify(data)
+});
+
+const result=await res.json();
+
+if(result.success){
+
+msg.className="success";
+msg.textContent=result.success;
+
+setTimeout(()=>{
+    window.location.href="/login.html";
+},1200);
+
+}else{
+
+msg.className="error";
+msg.textContent=result.error;
+
+}
+
+}catch(err){
+
+msg.className="error";
+msg.textContent="Network Error";
+
+}
+
+});
+
+</script>
 
 </body>
 </html>

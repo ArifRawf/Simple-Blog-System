@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Categories</title>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Inter,sans-serif;
+    background:#eef2f7;
+    color:#222;
+}
+
+/* Container */
+
+.container{
+    width:min(1200px,95%);
+    margin:45px auto;
+}
+
+/* Heading */
+
+h1{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-size:34px;
+    margin-bottom:30px;
+}
+
+#counts{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:42px;
+    height:42px;
+    padding:0 12px;
+    background:#2563eb !important;
+    color:#fff;
+    border-radius:999px;
+    font-size:18px;
+    font-weight:700;
+}
+
+/* Grid */
+
+.category-list{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:20px;
+}
+
+/* Card */
+
+.category-card{
+    background:#fff;
+    border:1px solid #dbe2ea;
+    border-radius:16px;
+    padding:28px 22px;
+    text-align:center;
+    cursor:pointer;
+    transition:.25s;
+    box-shadow:0 8px 24px rgba(0,0,0,.06);
+}
+
+.category-card:hover{
+    transform:translateY(-5px);
+    border-color:#2563eb;
+    box-shadow:0 14px 34px rgba(37,99,235,.15);
+}
+
+.category-card h3{
+    font-size:22px;
+    color:#2563eb;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+}
+
+/* Mobile */
+
+@media(max-width:700px){
+
+.container{
+    width:94%;
+}
+
+h1{
+    font-size:28px;
+    flex-wrap:wrap;
+}
+
+.category-card{
+    padding:22px 18px;
+}
+
+.category-card h3{
+    font-size:20px;
+}
+
+}
+</style>
+</head>
+<body>
+
+  <main class="container">
+    <h1>Categories <span id="counts" style="background-color: red"></span></h1>
+
+    <section class="category-list" id="category-list">
+</section>
+  </main>
+<script>
+async function catlists() {
+   try {
+ const req = await fetch('/api/category/lists');
+ const res = await req.json();
+ const section = document.getElementById('category-list');
+ document.getElementById('counts').textContent= res.length;
+ if(res.error) {
+    return section.textContent = res.error;
+    }
+ for(const i of res) {
+   const article = document.createElement('article');
+   const h3 = document.createElement('h3');
+   article.classList.add('category-card');
+   h3.textContent = i.catName;
+   article.appendChild(h3);
+   section.appendChild(article);
+   }
+   } catch(err) {
+   alert(err);
+   }
+   }
+catlists();
+</script>
+</body>
+</html>
