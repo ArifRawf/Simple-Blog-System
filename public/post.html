@@ -200,12 +200,15 @@ header{
 </div>
 
 <script>
+const params = new URLSearchParams(location.search);
+let catName_url = params.get('category');
 let catlists = document.getElementById('catlists');
 
 async function catlist() {
    try {
  const req = await fetch('/api/category/lists');
  const res = await req.json();
+ 
  if(res.error) {
  const option = document.createElement('option');
  option.value = '';
@@ -215,14 +218,33 @@ async function catlist() {
     catlists.appendChild(option);
     return;
     }
- for(const i of res) {
+   
+  //if user comes from category section to create new post
+  let mainCat = null;
+  if(catName_url) {
+  catName_url = catName_url.toLowerCase();///lower case to exact match
+   mainCat = res.find(c => c.catName.toLowerCase() === catName_url); //returns obj of selected catergory
+  } 
+  
+  
+  for(const i of res) {
    const option = document.createElement('option');
    option.value = i.catId;
    option.textContent = i.catName;
-   catlists.appendChild(option);
+   if(mainCat && mainCat.catId === i.catId) {
+   option.selected = true;
    }
+   catlists.appendChild(option);
+   
+   }
+    
+        
+    
+
    } catch(err) {
-   alert(err);
+   const option = document.createElement('option');
+   option.textContent = err;
+   catlists.appendChild(option);
    }
    return;
    }
