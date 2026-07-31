@@ -16,7 +16,7 @@ if(segment.length === 3 && segment[1] === 'category' || segment.length === 2 && 
 		
 		let data = await fs.readFile(path.join(process.cwd(),'public','category-posts.html'),'utf8');
 	 const logged = auth(req,res,refreshTokens); //returns payload or null
-		data = (logged) ? data.replace('{{addpost}}',`<a href="?act=new" class="new-post-btn">New Post</a>`) : data.replace('{{addpost}}','');
+		data = (logged) ? data.replace('{{addpost}}',`<a href="/post.html?category=${segment[2]}" class="new-post-btn">New Post</a>`) : data.replace('{{addpost}}','');
 		res.writeHead(200,{'Content-Type':'text/html'});
 		 res.end(data);
 		return true;
